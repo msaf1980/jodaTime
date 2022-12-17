@@ -58,9 +58,10 @@ func main() {
  m       minute of hour               number        30
  s       second of minute             number        55
  S       fraction of second           number        978
+ n       nanoseconds                  number        978
 
- z       time zone                    text          Pacific Standard Time; PST
- Z       time zone offset/id          zone          -0800; -08:00; America/Los_Angeles
+ z       time zone                    text          Z; Pacific Standard Time; PST; America/Los_Angeles
+ Z       time zone offset/id          zone          Z; -0800; -08:00; +08:00
 
  '       escape for text              delimiter
  ''      single quote                 literal       '

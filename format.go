@@ -8,7 +8,6 @@ http://joda-time.sourceforge.net/apidocs/org/joda/time/format/DateTimeFormat.htm
 import (
 	"strconv"
 	"time"
-	"unicode/utf8"
 )
 
 /*
@@ -37,31 +36,47 @@ import (
  m       minute of hour               number        30
  s       second of minute             number        55
  S       fraction of second           number        978
+ n       nanoseconds                  number        978
 
- z       time zone                    text          Pacific Standard Time; PST
- Z       time zone offset/id          zone          -0800; -08:00; America/Los_Angeles
+ z       time zone                    text          Z; Pacific Standard Time; PST; America/Los_Angeles
+ Z       time zone offset/id          zone          Z; -0800; -08:00; +08:00
 
  '       escape for text              delimiter
  ''      single quote                 literal       '
 */
 
-// Format formats a date based on joda conventions
+func formatNumber(out []byte, v int64, n int) []byte {
+	var buf [64]byte
+	b := strconv.AppendInt(buf[:0], v, 10)
+	n = n - len(b)
+	for i := 0; i < n; i++ {
+		out = append(out, '0')
+	}
+	return append(out, b...)
+}
+
 func Format(format string, date time.Time) string {
-	formatRune := []rune(format)
-	lenFormat := len(formatRune)
+	// formatRune := []rune(format)
 	out := make([]byte, 0, 24)
-	for i := 0; i < len(formatRune); i++ {
-		switch r := formatRune[i]; r {
+	return UnsafeString(AppendFormat(out, format, date))
+}
+
+// AppendFormat formats a date based on joda conventions and append to []byte buffer
+func AppendFormat(out []byte, format string, date time.Time) []byte {
+	// formatRune := []rune(format)
+	lenFormat := len(format)
+	for i := 0; i < lenFormat; i++ {
+		switch r := format[i]; r {
 		case 'Y', 'y', 'x': // Y YYYY YY year
 
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 
 			switch j {
 			case 1, 3, 4: // Y YYY YYYY
@@ -77,12 +92,12 @@ func Format(format string, date time.Time) string {
 		case 'D': // D DD day of year
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 
 			switch j {
 			case 1: // D
@@ -98,12 +113,12 @@ func Format(format string, date time.Time) string {
 		case 'w': // w ww week of weekyear
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			_, w := date.ISOWeek()
 			switch j {
 			case 1: // w
@@ -118,12 +133,12 @@ func Format(format string, date time.Time) string {
 		case 'M': // M MM MMM MMMM month of year
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Month()
 			switch j {
 			case 1: // M
@@ -142,12 +157,12 @@ func Format(format string, date time.Time) string {
 		case 'd': // d dd day of month
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Day()
 			switch j {
 			case 1: // d
@@ -162,12 +177,12 @@ func Format(format string, date time.Time) string {
 		case 'e': // e ee day of week(number)
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Weekday()
 			switch j {
 			case 1: // e
@@ -180,12 +195,12 @@ func Format(format string, date time.Time) string {
 		case 'E': // E EE
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Weekday()
 			switch j {
 			case 1, 2, 3: // E
@@ -196,12 +211,12 @@ func Format(format string, date time.Time) string {
 		case 'h': // h hh clockhour of halfday (1~12)
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Hour()
 			if v > 12 {
 				v = v - 12
@@ -222,12 +237,12 @@ func Format(format string, date time.Time) string {
 		case 'H': // H HH
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Hour()
 			switch j {
 			case 1: // H
@@ -249,12 +264,12 @@ func Format(format string, date time.Time) string {
 		case 'm': // m mm minute of hour
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Minute()
 			switch j {
 			case 1: // m
@@ -268,12 +283,12 @@ func Format(format string, date time.Time) string {
 		case 's': // s ss
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Second()
 			switch j {
 			case 1: // s
@@ -288,11 +303,11 @@ func Format(format string, date time.Time) string {
 		case 'S': // S SS SSS
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Nanosecond() / 1000000
 			switch j {
 			case 1: // S
@@ -312,6 +327,17 @@ func Format(format string, date time.Time) string {
 				out = strconv.AppendInt(out, int64(v), 10)
 			}
 
+		case 'n': // n
+			j := 1
+			for ; i+j < lenFormat; j++ {
+				if format[i+j] != r {
+					break
+				}
+			}
+			i += j - 1
+			v := date.Nanosecond()
+			out = formatNumber(out, int64(v), 9)
+
 		case 'z': // z
 			z, _ := date.Zone()
 			out = append(out, z...)
@@ -319,12 +345,12 @@ func Format(format string, date time.Time) string {
 		case 'Z': // Z ZZ
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			zs, z := date.Zone()
 			sign := "+"
 			if z < 0 {
@@ -364,17 +390,19 @@ func Format(format string, date time.Time) string {
 			out = append(out, "AD"...)
 
 		case 'C': //century of era (>=0)         number
-			out = append(out, strconv.Itoa(date.Year())[0:2]...)
+			year := date.Year()
+			c := (year - year%100) / 100
+			out = strconv.AppendInt(out, int64(c), 10)
 
 		case 'K': // K KK hour of halfday (0~11)
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Hour()
 			if v >= 12 {
 				v = v - 12
@@ -393,12 +421,12 @@ func Format(format string, date time.Time) string {
 		case 'k': // k kk clockhour of day (1~24)
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 
 			}
-			i = i + j - 1
+			i += j - 1
 			v := date.Hour()
 			switch j {
 			case 1: // k
@@ -417,7 +445,7 @@ func Format(format string, date time.Time) string {
 		case '\'': // ' (text delimiter)  or '' (real quote)
 
 			// real quote
-			if formatRune[i+1] == r {
+			if format[i+1] == r {
 				out = append(out, '\'')
 				i = i + 1
 				continue
@@ -425,19 +453,18 @@ func Format(format string, date time.Time) string {
 
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
-					out = utf8.AppendRune(out, formatRune[i+j])
+				if format[i+j] != r {
+					out = append(out, format[i+j])
 					continue
 				}
 				break
 			}
-			i = i + j
+			i += j
 		default:
-			out = utf8.AppendRune(out, r)
+			out = append(out, format[i])
 		}
 	}
-	return UnsafeString(out)
-
+	return out
 }
 
 // TODO: refactor timezone
