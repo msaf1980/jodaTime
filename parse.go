@@ -2,7 +2,6 @@ package jodaTime
 
 import (
 	"time"
-	"unicode/utf8"
 )
 
 func ParseInLocation(format, value, timezone string) (time.Time, error) {
@@ -22,15 +21,14 @@ func Parse(format, value string) (time.Time, error) {
 // GetLayout convert JodaTime layout to golang stdlib time layout
 func GetLayout(format string) string {
 	//replace ? or for rune ?
-	formatRune := []rune(format)
-	lenFormat := len(formatRune)
+	lenFormat := len(format)
 	layout := make([]byte, 0, 9)
 	for i := 0; i < lenFormat; i++ {
-		switch r := formatRune[i]; r {
+		switch r := format[i]; r {
 		case 'h':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -41,11 +39,11 @@ func GetLayout(format string) string {
 				layout = append(layout, "03"...)
 			}
 
-			i = i + j - 1
+			i += j - 1
 		case 'H':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -56,7 +54,7 @@ func GetLayout(format string) string {
 		case 'm':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -67,11 +65,11 @@ func GetLayout(format string) string {
 				layout = append(layout, "04"...)
 			}
 
-			i = i + j - 1
+			i += j - 1
 		case 's':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -82,11 +80,11 @@ func GetLayout(format string) string {
 				layout = append(layout, "05"...)
 			}
 
-			i = i + j - 1
+			i += j - 1
 		case 'd':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -96,11 +94,11 @@ func GetLayout(format string) string {
 			default:
 				layout = append(layout, "02"...)
 			}
-			i = i + j - 1
+			i += j - 1
 		case 'E':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -110,11 +108,11 @@ func GetLayout(format string) string {
 			default:
 				layout = append(layout, "Monday"...)
 			}
-			i = i + j - 1
+			i += j - 1
 		case 'M':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -129,12 +127,12 @@ func GetLayout(format string) string {
 			case 4:
 				layout = append(layout, "January"...)
 			}
-			i = i + j - 1
+			i += j - 1
 
 		case 'Y', 'y', 'x':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -145,12 +143,12 @@ func GetLayout(format string) string {
 				layout = append(layout, "2006"...)
 			}
 
-			i = i + j - 1
+			i += j - 1
 
 		case 'S':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -159,21 +157,23 @@ func GetLayout(format string) string {
 				layout = append(layout, '9')
 			}
 
-			i = i + j - 1
+			i += j - 1
 
 		case 'a':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
+
+			i += j - 1
 
 			layout = append(layout, "PM"...)
 		case 'Z':
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
+				if format[i+j] != r {
 					break
 				}
 			}
@@ -185,11 +185,11 @@ func GetLayout(format string) string {
 				layout = append(layout, "-07:00"...)
 			}
 
-			i = i + j - 1
+			i += j - 1
 		case '\'': // ' (text delimiter)  or '' (real quote)
 
 			// real quote
-			if formatRune[i+1] == r {
+			if format[i+1] == r {
 				layout = append(layout, '\'')
 				i = i + 1
 				continue
@@ -197,16 +197,16 @@ func GetLayout(format string) string {
 
 			j := 1
 			for ; i+j < lenFormat; j++ {
-				if formatRune[i+j] != r {
-					layout = utf8.AppendRune(layout, formatRune[i+j])
+				if format[i+j] != r {
+					layout = append(layout, format[i+j])
 					continue
 				}
 				break
 			}
-			i = i + j
+			i += j
 
 		default:
-			layout = utf8.AppendRune(layout, r)
+			layout = append(layout, r)
 		}
 	}
 	return UnsafeString(layout)
