@@ -159,6 +159,18 @@ func GetLayout(format string) string {
 
 			i += j - 1
 
+		case 'n':
+			j := 1
+			for ; i+j < lenFormat; j++ {
+				if format[i+j] != r {
+					break
+				}
+			}
+
+			layout = append(layout, "999999999"...)
+
+			i += j - 1
+
 		case 'a':
 			j := 1
 			for ; i+j < lenFormat; j++ {

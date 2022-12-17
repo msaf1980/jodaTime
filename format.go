@@ -36,19 +36,35 @@ import (
  m       minute of hour               number        30
  s       second of minute             number        55
  S       fraction of second           number        978
+ n       nanoseconds                  number        978
 
- z       time zone                    text          Pacific Standard Time; PST
- Z       time zone offset/id          zone          -0800; -08:00; America/Los_Angeles
+ z       time zone                    text          Z; Pacific Standard Time; PST; America/Los_Angeles
+ Z       time zone offset/id          zone          Z; -0800; -08:00; +08:00
 
  '       escape for text              delimiter
  ''      single quote                 literal       '
 */
 
-// Format formats a date based on joda conventions
+func formatNumber(out []byte, v int64, n int) []byte {
+	var buf [64]byte
+	b := strconv.AppendInt(buf[:0], v, 10)
+	n = n - len(b)
+	for i := 0; i < n; i++ {
+		out = append(out, '0')
+	}
+	return append(out, b...)
+}
+
 func Format(format string, date time.Time) string {
 	// formatRune := []rune(format)
-	lenFormat := len(format)
 	out := make([]byte, 0, 24)
+	return UnsafeString(AppendFormat(out, format, date))
+}
+
+// AppendFormat formats a date based on joda conventions and append to []byte buffer
+func AppendFormat(out []byte, format string, date time.Time) []byte {
+	// formatRune := []rune(format)
+	lenFormat := len(format)
 	for i := 0; i < lenFormat; i++ {
 		switch r := format[i]; r {
 		case 'Y', 'y', 'x': // Y YYYY YY year
@@ -311,6 +327,17 @@ func Format(format string, date time.Time) string {
 				out = strconv.AppendInt(out, int64(v), 10)
 			}
 
+		case 'n': // n
+			j := 1
+			for ; i+j < lenFormat; j++ {
+				if format[i+j] != r {
+					break
+				}
+			}
+			i += j - 1
+			v := date.Nanosecond()
+			out = formatNumber(out, int64(v), 9)
+
 		case 'z': // z
 			z, _ := date.Zone()
 			out = append(out, z...)
@@ -437,8 +464,7 @@ func Format(format string, date time.Time) string {
 			out = append(out, format[i])
 		}
 	}
-	return UnsafeString(out)
-
+	return out
 }
 
 // TODO: refactor timezone

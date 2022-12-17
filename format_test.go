@@ -2,6 +2,7 @@ package jodaTime
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -73,6 +74,9 @@ func TestFormatMore(t *testing.T) {
 		{"SSS", "100", time.Date(2007, time.November, 15, 04, 55, 46, 100000000, time.FixedZone("", -1*3600))},
 		{"SSS", "010", time.Date(2007, time.November, 15, 04, 55, 46, 10000000, time.FixedZone("", -1*3600))},
 		{"SSS", "001", time.Date(2007, time.November, 15, 04, 55, 46, 1000000, time.FixedZone("", -1*3600))},
+
+		{"n", "000000010", time.Date(2007, time.November, 15, 04, 55, 46, 10, time.FixedZone("", -1*3600))},
+		{"n", "000000001", time.Date(2007, time.November, 15, 04, 55, 46, 1, time.FixedZone("", -1*3600))},
 
 		{"Z", "-1100", time.Date(2007, time.November, 15, 04, 55, 46, 1000000, time.FixedZone("", -11*3600))},
 		{"ZZ", "-11:00", time.Date(2007, time.November, 15, 04, 55, 46, 1000000, time.FixedZone("", -11*3600))},
@@ -354,5 +358,98 @@ func BenchmarkTimeFormatShort(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		date.Format(layout)
+	}
+}
+
+func Test_formatNumber(t *testing.T) {
+	tests := []struct {
+		v    int64
+		n    int
+		want string
+	}{
+		// 9
+		// {v: 9, n: 9, want: "000000009"},
+		// {v: 91, n: 9, want: "000000091"},
+		// {v: 900, n: 9, want: "000000900"},
+		// {v: 9001, n: 9, want: "000009001"},
+		// {v: 90012, n: 9, want: "000090012"},
+		// {v: 900124, n: 9, want: "000900124"},
+		// {v: 9001248, n: 9, want: "009001248"},
+		// {v: 90012481, n: 9, want: "090012481"},
+		{v: 999999999, n: 9, want: "999999999"},
+		// 8
+		{v: 9, n: 8, want: "00000009"},
+		{v: 91, n: 8, want: "00000091"},
+		{v: 900, n: 8, want: "00000900"},
+		{v: 9001, n: 8, want: "00009001"},
+		{v: 90012, n: 8, want: "00090012"},
+		{v: 900124, n: 8, want: "00900124"},
+		{v: 9001248, n: 8, want: "09001248"},
+		{v: 90012481, n: 8, want: "90012481"},
+		{v: 999999999, n: 8, want: "999999999"},
+		// 7
+		{v: 9, n: 7, want: "0000009"},
+		{v: 91, n: 7, want: "0000091"},
+		{v: 900, n: 7, want: "0000900"},
+		{v: 9001, n: 7, want: "0009001"},
+		{v: 90012, n: 7, want: "0090012"},
+		{v: 900124, n: 7, want: "0900124"},
+		{v: 9001248, n: 7, want: "9001248"},
+		{v: 90012481, n: 7, want: "90012481"},
+		// 6
+		{v: 9, n: 6, want: "000009"},
+		{v: 91, n: 6, want: "000091"},
+		{v: 900, n: 6, want: "000900"},
+		{v: 9001, n: 6, want: "009001"},
+		{v: 90012, n: 6, want: "090012"},
+		{v: 900124, n: 6, want: "900124"},
+		{v: 9001248, n: 6, want: "9001248"},
+		// 5
+		{v: 9, n: 5, want: "00009"},
+		{v: 91, n: 5, want: "00091"},
+		{v: 900, n: 5, want: "00900"},
+		{v: 9001, n: 5, want: "09001"},
+		{v: 90012, n: 5, want: "90012"},
+		{v: 900124, n: 5, want: "900124"},
+		// 4
+		{v: 9, n: 4, want: "0009"},
+		{v: 91, n: 4, want: "0091"},
+		{v: 900, n: 4, want: "0900"},
+		{v: 9001, n: 4, want: "9001"},
+		{v: 90012, n: 4, want: "90012"},
+		// 3
+		{v: 9, n: 3, want: "009"},
+		{v: 91, n: 3, want: "091"},
+		{v: 900, n: 3, want: "900"},
+		{v: 9001, n: 3, want: "9001"},
+		// 2
+		{v: 9, n: 2, want: "09"},
+		{v: 91, n: 2, want: "91"},
+		{v: 900, n: 2, want: "900"},
+		// 1
+		{v: 9, n: 1, want: "9"},
+		{v: 91, n: 1, want: "91"},
+		{v: 900, n: 1, want: "900"},
+	}
+	for _, tt := range tests {
+		t.Run(strconv.FormatInt(tt.v, 10), func(t *testing.T) {
+			out := formatNumber(nil, tt.v, tt.n)
+			got := string(out)
+			if got != tt.want {
+				t.Errorf("formatNumber(%d, %d) = %v, want %v", tt.v, tt.n, got, tt.want)
+			}
+		})
+	}
+}
+
+func BenchmarkFormatNumberLong(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		formatNumber(nil, 999999999, 9)
+	}
+}
+
+func BenchmarkFormatNumberShort(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		formatNumber(nil, 9, 1)
 	}
 }
